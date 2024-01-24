@@ -47,6 +47,7 @@ export function Philo(philo: Philosophy) {
 			action = Action.NEUTRAL;
 		}
 		console.log(`Gesture received ${gesture} with action ${action}`);
+		setOverlayOpacity(0);
 	}, [gesture]);
 
   return (
