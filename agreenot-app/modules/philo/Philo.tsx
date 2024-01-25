@@ -1,86 +1,113 @@
-import { Animated, PanResponder, StyleSheet, View } from "react-native";
+import { Animated, Text, StyleSheet, View, Dimensions } from "react-native";
 import { Philosophy } from "./models/Philosophy";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import {
+  Gesture,
+  GestureDetector,
+  GestureHandlerRootView,
+} from "react-native-gesture-handler";
 import { useEffect, useRef, useState } from "react";
 import { Action, SwipeGesture } from "./models/enums";
 
-const THRESHOLD = 20;
+const THRESHOLD = 120;
 
 export function Philo(philo: Philosophy) {
-	let [ gesture, setGesture ] = useState<SwipeGesture>(SwipeGesture.None);
-	let [ overlayOpeacity, setOverlayOpacity ] = useState(0);
+  let [gesture, setGesture] = useState<SwipeGesture>(SwipeGesture.None);
+  let [overlayOpeacity, setOverlayOpacity] = useState(0);
   let startX: number, startY: number;
   const swipeGesture = Gesture.Pan()
     .onStart((e) => {
-      startX = e.translationX;
-      startY = e.translationY;
+      startX = e.absoluteX;
+      startY = e.absoluteY;
     })
-	.onChange((e) => {
-		const horizontalConfidence = (e.translationX - startX)/THRESHOLD;
-		const verticalConfidence = (e.translationY - startY)/THRESHOLD;
-		setOverlayOpacity(Math.max(Math.floor(horizontalConfidence), Math.floor(verticalConfidence)));
-	})
+    .onChange((e) => {
+      const horizontalConfidence = e.translationX / THRESHOLD;
+      const verticalConfidence = e.translationY/ THRESHOLD;
+	  console.log(`translation: ${e.translationX} and ${e.translationY}`);
+      setOverlayOpacity(
+        Math.max(
+          Math.floor(horizontalConfidence),
+          Math.floor(verticalConfidence)
+        )
+      );
+    })
     .onEnd((e) => {
       /**
        * TODO: Separate threshold for X and Y
        */
-	  let currentGesture = SwipeGesture.None;
-      if (e.translationX - startX > THRESHOLD) {
-        currentGesture = SwipeGesture.Right;
-      } else if (startX - e.translationX > THRESHOLD) {
-        currentGesture = SwipeGesture.Left;
-      } else if (e.translationY - startY > THRESHOLD) {
+      let currentGesture = SwipeGesture.None;
+	  if (Math.floor(e.translationX) > Math.floor(e.translationY)) {
+		if (e.translationX > THRESHOLD) {
+			currentGesture = SwipeGesture.Right;
+		  } else if (e.translationX < THRESHOLD) {
+			currentGesture = SwipeGesture.Left;
+		  }
+	  } else if (Math.floor(e.translationX) > Math.floor(e.translationY)) {
+		if (e.translationY > THRESHOLD) {
         currentGesture = SwipeGesture.Down;
-      } else if (startY - e.translationY > THRESHOLD) {
+      } else if (e.translationY < THRESHOLD) {
         currentGesture = SwipeGesture.Up;
       }
-	  setGesture(currentGesture);
+	}
+      setGesture(currentGesture);
     });
 
-	useEffect(() => {
-		let action = Action.NEUTRAL;
-		if (gesture === SwipeGesture.Left) {
-			action = Action.DISAGREE;
-		} else if (gesture === SwipeGesture.Right) {
-			action = Action.AGREE;
-		} else if (gesture === SwipeGesture.Down) {
-			action = Action.NEUTRAL;
-		}
-		console.log(`Gesture received ${gesture} with action ${action}`);
-		setOverlayOpacity(0);
-	}, [gesture]);
+  useEffect(() => {
+    let action = Action.NEUTRAL;
+    if (gesture === SwipeGesture.Left) {
+      action = Action.DISAGREE;
+    } else if (gesture === SwipeGesture.Right) {
+      action = Action.AGREE;
+    } else if (gesture === SwipeGesture.Down) {
+      action = Action.NEUTRAL;
+    }
+    console.log(`Gesture received ${gesture} with action ${action}`);
+    setOverlayOpacity(0);
+  }, [gesture]);
 
   return (
     <View>
-		<view style={philoStyle.container}>
-			<GestureDetector gesture={swipeGesture}>
-			<view style={philoStyle.philoContent}>{philo.content}</view>
-			<view style={philoStyle.philoNonContent}>
-			<view style={{ flexDirection: "row" }}>
-				<view style={{ flex: 1, padding: "10%" }}>{philo.agreeCount}</view>
-				<view style={{ flex: 1, padding: "10%" }}>
-				{philo.neutralCount}
-				</view>
-				<view style={{ flex: 1, padding: "10%" }}>
-				{philo.disagreeCount}
-				</view>
-			</view>
-			</view>
-		</GestureDetector>
-		</view>
-		<view style={ {...philoStyle.overlay, opacity: overlayOpeacity} }>
-			<view style = {philoStyle.container}>
-				{gesture}
-			</view>
-		</view>
+      <GestureHandlerRootView style={philoStyle.container}>
+        <GestureDetector gesture={swipeGesture}>
+          <View>
+            <View style={{ ...philoStyle.overlay, opacity: overlayOpeacity, display: overlayOpeacity === 0 ? 'none': 'flex' }}>
+              <View style={philoStyle.container}>
+                <Text>{gesture}</Text>
+              </View>
+            </View>
+            <View style={philoStyle.philoContent}>
+              <Text>{philo.content}</Text>
+            </View>
+            <View style={philoStyle.philoNonContent}>
+              <View style={{ flexDirection: "row" }}>
+                <View style={{ flex: 1, padding: "10%" }}>
+                  <Text>{philo.agreeCount}</Text>
+                </View>
+                <View style={{ flex: 1, padding: "10%" }}>
+                  <Text>{philo.neutralCount}</Text>
+                </View>
+                <View style={{ flex: 1, padding: "10%" }}>
+                  <Text>{philo.disagreeCount}</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        </GestureDetector>
+      </GestureHandlerRootView>
     </View>
   );
 }
 
+var { width, height } = Dimensions.get("window");
 const philoStyle = StyleSheet.create({
   overlay: {
-	backgroundColor: "#fff",
-	zIndex: 2,
+    flex: 1,
+    position: "absolute",
+    left: -100,
+    top: 0,
+    backgroundColor: "black",
+    width: "200%",
+    margin: 0,
+    height,
   },
   container: {
     flex: 1,
@@ -92,6 +119,8 @@ const philoStyle = StyleSheet.create({
   },
   philoContent: {
     flex: 4,
+    alignItems: "center",
+    justifyContent: "center",
   },
   philoNonContent: {
     flex: 1,
